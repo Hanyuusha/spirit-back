@@ -1,5 +1,3 @@
-
-
 from aiohttp import web
 import socketio
 
@@ -9,24 +7,33 @@ sio = socketio.AsyncServer(cors_allowed_origins='*')
 app = web.Application()
 sio.attach(app)
 
+USER_ROOMS = {}
+
 
 @sio.event
 async def connect(sid, environ):
-    print('Connected', sid)
-    await sio.emit('ready', room=ROOM, skip_sid=sid)
-    sio.enter_room(sid, ROOM)
+    room_id = environ['aiohttp.request'].query.get('room', ROOM)
+    sio.enter_room(sid, room_id)
+    USER_ROOMS[sid] = room_id
+    await sio.emit('ready', to=sid)
 
 
 @sio.event
 def disconnect(sid):
-    sio.leave_room(sid, ROOM)
-    print('Disconnected', sid)
+    room = USER_ROOMS.pop(sid)
+    sio.leave_room(sid, room)
 
 
 @sio.event
-async def data(sid, payload):
-    print('Message from {}: {}'.format(sid, payload))
-    await sio.emit('data', data=payload, room=ROOM, skip_sid=sid)
+async def register(sid, payload):
+    room = USER_ROOMS[sid]
+    await sio.emit('register', data=payload, room=room, skip_sid=sid)
+
+
+@sio.event
+async def webrtc(sid, payload):
+    room = USER_ROOMS[sid]
+    await sio.emit('webrtc', data=payload, room=room, skip_sid=sid)
 
 
 if __name__ == '__main__':
