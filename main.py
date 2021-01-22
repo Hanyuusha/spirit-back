@@ -13,27 +13,26 @@ USER_ROOMS = {}
 @sio.event
 async def connect(sid, environ):
     room_id = environ['aiohttp.request'].query.get('room', ROOM)
-    sio.enter_room(sid, room_id)
-    USER_ROOMS[sid] = room_id
+    sio.enter_room(sid, ROOM)
     await sio.emit('ready', to=sid)
 
 
 @sio.event
 def disconnect(sid):
     room = USER_ROOMS.pop(sid)
-    sio.leave_room(sid, room)
+    sio.leave_room(sid, ROOM)
 
 
 @sio.event
 async def register(sid, payload):
     room = USER_ROOMS[sid]
-    await sio.emit('register', data=payload, room=room, skip_sid=sid)
+    await sio.emit('register', data=payload, room=ROOM, skip_sid=sid)
 
 
 @sio.event
 async def webrtc(sid, payload):
     room = USER_ROOMS[sid]
-    await sio.emit('webrtc', data=payload, room=room, skip_sid=sid)
+    await sio.emit('webrtc', data=payload, room=ROOM, skip_sid=sid)
 
 
 if __name__ == '__main__':
